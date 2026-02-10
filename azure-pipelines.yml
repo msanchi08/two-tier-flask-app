@@ -6,6 +6,8 @@ pool:
   vmImage: ubuntu-latest
 
 variables:
+  ACR_LOGIN_SERVER: msanchiacr.azurecr.io
+  ACR_USERNAME: msanchiacr
   IMAGE_NAME: flaskapp
   VM_HOST: 52.157.242.191
   VM_USER: azureuser
@@ -27,18 +29,24 @@ steps:
 - script: |
     set -e
     echo "Logging in to ACR..."
-    echo "$(ACR_PASSWORD)" | docker login "$(ACR_LOGIN_SERVER)" -u "$(ACR_USERNAME)" --password-stdin
+    echo "$ACR_PASSWORD" | docker login "$ACR_LOGIN_SERVER" -u "$ACR_USERNAME" --password-stdin
 
     echo "Building image..."
-    docker build -t $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(Build.BuildId) .
+    docker build -t $ACR_LOGIN_SERVER/$IMAGE_NAME:$(Build.BuildId) .
 
     echo "Tagging latest..."
-    docker tag $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(Build.BuildId) $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):latest
+    docker tag $ACR_LOGIN_SERVER/$IMAGE_NAME:$(Build.BuildId) $ACR_LOGIN_SERVER/$IMAGE_NAME:latest
 
     echo "Pushing..."
-    docker push $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(Build.BuildId)
-    docker push $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):latest
+    docker push $ACR_LOGIN_SERVER/$IMAGE_NAME:$(Build.BuildId)
+    docker push $ACR_LOGIN_SERVER/$IMAGE_NAME:latest
   displayName: 'Build & Push to ACR'
+  env:
+    ACR_LOGIN_SERVER: $(ACR_LOGIN_SERVER)
+    ACR_USERNAME: $(ACR_USERNAME)
+    ACR_PASSWORD: $(ACR_PASSWORD)
+    IMAGE_NAME: $(IMAGE_NAME)
+
 
 # 3) SSH into VM and run the container
 - script: |
