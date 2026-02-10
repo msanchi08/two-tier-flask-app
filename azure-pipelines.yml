@@ -56,28 +56,39 @@ steps:
     chmod 600 "$(sshkey.secureFilePath)"
 
     echo "Deploying on VM via SSH..."
-    ssh -i "$(sshkey.secureFilePath)" -o StrictHostKeyChecking=no $(VM_USER)@$(VM_HOST) << EOF
+    ssh -i "$(sshkey.secureFilePath)" -o StrictHostKeyChecking=no $VM_USER@$VM_HOST << EOF
       set -e
 
       echo "Docker login to ACR on VM..."
-      echo "$(ACR_PASSWORD)" | docker login "$(ACR_LOGIN_SERVER)" -u "$(ACR_USERNAME)" --password-stdin
+      echo "$ACR_PASSWORD" | sudo docker login "$ACR_LOGIN_SERVER" -u "$ACR_USERNAME" --password-stdin
 
       echo "Pull image..."
-      docker pull $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(Build.BuildId)
+      sudo docker pull $ACR_LOGIN_SERVER/$IMAGE_NAME:$(Build.BuildId)
 
       echo "Stop old container if exists..."
-      docker rm -f $(CONTAINER_NAME) || true
+      sudo docker rm -f $CONTAINER_NAME || true
 
       echo "Run new container..."
-      docker run -d --name $(CONTAINER_NAME) \
-        -p $(HOST_PORT):$(CONTAINER_PORT) \
+      sudo docker run -d --name $CONTAINER_NAME \
+        -p $HOST_PORT:$CONTAINER_PORT \
         --restart unless-stopped \
-        $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(Build.BuildId)
+        $ACR_LOGIN_SERVER/$IMAGE_NAME:$(Build.BuildId)
 
       echo "Show running containers:"
-      docker ps
+      sudo docker ps
 
       echo "Quick health check (localhost):"
-      curl -I http://localhost:$(HOST_PORT) || true
+      curl -I http://localhost:$HOST_PORT || true
     EOF
   displayName: 'Deploy to Azure VM (docker run)'
+  env:
+    VM_USER: $(VM_USER)
+    VM_HOST: $(VM_HOST)
+    ACR_LOGIN_SERVER: $(ACR_LOGIN_SERVER)
+    ACR_USERNAME: $(ACR_USERNAME)
+    ACR_PASSWORD: $(ACR_PASSWORD)
+    IMAGE_NAME: $(IMAGE_NAME)
+    CONTAINER_NAME: $(CONTAINER_NAME)
+    CONTAINER_PORT: $(CONTAINER_PORT)
+    HOST_PORT: $(HOST_PORT)
+
